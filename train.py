@@ -7,7 +7,7 @@ import glob
 from model import Generator, Encoder, Discriminator
 from loader import load_batch_image, load_test_image, load_images
 
-epoch = 20
+epochs = 20
 batch_size = 1
 image_size = 256
 Z_dim = 8
@@ -56,7 +56,7 @@ GI = tf.concat([image_A, z], axis=3)
 desired_gen_img = G(encoded_GI)
 LR_desired_img = G(GI)
 
-for e in range(epoch):
+for epoch in range(epochs):
     for idx in range(train_A):
         image_A, image_B = load_batch_image(idx)
         image_A = np.expand_dims(image_A, axis=0)
@@ -85,22 +85,20 @@ for e in range(epoch):
             P_fake_encoded = D(desired_gen_img)
 
             loss_vae_D = (
-                tf.reduce_mean(tf.math.squared_difference(P_real, 0.9)) +
-                tf.reduce_mean(tf.square(P_fake_encoded)))
+				tl.cost.mean_squared_error(P_real, 0.9) +
+                tl.cost.mean_squared_error(P_fake_encoded, 0))
             loss_lr_D = (
-                tf.reduce_mean(tf.math.squared_difference(P_real, 0.9)) +
-                tf.reduce_mean(tf.square(P_fake)))
-            loss_vae_GE = tf.reduce_mean(
-                tf.math.squared_difference(P_fake_encoded, 0.9))
-            loss_G = tf.reduce_mean(tf.math.squared_difference(P_fake, 0.9))
-            loss_vae_GE = tf.reduce_mean(tf.abs(image_B - desired_gen_img))
-            loss_latent_GE = tf.reduce_mean(tf.abs(z - reconst_z))
+                tl.cost.mean_squared_error(P_real, 0.9) +
+                tl.cost.mean_squared_error(P_fake, 0))
+            loss_vae_GE = tl.cost.mean_squared_error(P_fake_encoded, 0.9)
+            loss_G = tl.cost.mean_squared_error(P_fake, 0.9)
+            loss_vae_GE = tf.metrics.mean_absolute_error(image_B, desired_gen_img)
+            loss_latent_GE = tf.metrics.mean_absolute_error(z, reconst_z)
             loss_kl_E = 0.5 * tf.reduce_mean(
                 -1 - encoded_log_sigma + encoded_mu**2 +
                 tf.exp(encoded_log_sigma))
 
-            loss_D = loss_vae_D + loss_lr_D - tf.reduce_mean(
-                tf.math.squared_difference(P_real, 0.9))
+            loss_D = loss_vae_D + loss_lr_D - tl.cost.mean_squared_error(P_real, 0.9)
             loss_G = loss_vae_GE + loss_G + reconst_C * loss_vae_GE + latent_C * loss_latent_GE
             loss_E = loss_vae_GE + reconst_C * loss_vae_GE + latent_C * loss_latent_GE + kl_C * loss_kl_E
 
@@ -111,11 +109,11 @@ for e in range(epoch):
         grad = tape.gradient(loss_E, E.trainable_weights)
         opt.apply_gradients(zip(grad, E.trainable_weights))
 
-    if e != 0 and e % 10 == 0:
+    if epoch != 0 and epoch % 10 == 0:
         tl.vis.save_images(desired_gen_img.numpy(), [2, 4],
-                           os.path.join(save_dir, 'vae_g_{}.png'.format(e)))
+                           os.path.join(save_dir, 'vae_g_{}.png'.format(epoch)))
         tl.vis.save_images(LR_desired_img.numpy(), [2, 4],
-                           os.path.join(save_dir, 'lr_g_{}.png'.format(e)))
+                           os.path.join(save_dir, 'lr_g_{}.png'.format(epoch)))
 
 #G.eval()
 #out=G(valid_...).numpy()

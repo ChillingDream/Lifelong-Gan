@@ -85,12 +85,8 @@ def Encoder(input_shape, Z_dim):
     E = MeanPool2d((2, 2), (2, 2), 'SAME')(residual(E, 512, 3))
     E = MeanPool2d((2, 2), (2, 2), 'SAME')(residual(E, 512, 3))
     E = Flatten()(MeanPool2d((8, 8), (8, 8), 'SAME')(E))
-    mu = Dense(Z_dim, b_init=tf.constant_initializer(0.0))(E)
-    log_sigma = Dense(Z_dim, b_init=tf.constant_initializer(0.0))(E)
-    z = Elementwise(tf.add)([
-        mu,
-        Lambda(lambda x: tf.random.normal(shape=tf.shape(Z_dim)) * tf.exp(x))(
-            log_sigma)
-    ])
+    mu = Dense(Z_dim, b_init=0)(E)
+    log_sigma = Dense(Z_dim, b_init=0)(E)
+    z = Elementwise(tf.add)([mu, Lambda(lambda x: tf.random.normal(shape=[Z_dim]) * tf.exp(x))(log_sigma)])
     E_net = Model(inputs=I, outputs=[z, mu, log_sigma], name='Encoder')
     return E_net
