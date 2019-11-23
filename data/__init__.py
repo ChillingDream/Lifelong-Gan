@@ -33,7 +33,9 @@ def find_dataset_using_name(dataset_name):
             dataset = cls
 
     if dataset is None:
-        raise NotImplementedError("In %s.py, there should be a subclass of BaseDataset with class name that matches %s in lowercase." % (dataset_filename, target_dataset_name))
+        raise NotImplementedError(
+            "In %s.py, there should be a subclass of BaseDataset with class name that matches %s in lowercase."
+            % (dataset_filename, target_dataset_name))
 
     return dataset
 
