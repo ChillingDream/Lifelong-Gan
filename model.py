@@ -8,9 +8,10 @@ lrelu = lambda x: tl.act.lrelu(x, 0.2)
 
 
 def residual(R, n_f, f_s):
+	w_init = tl.initializers.truncated_normal(stddev=0.001)
 	R_tmp = R
-	R = BatchNorm2d(act=lrelu)(Conv2d(n_f, (f_s, f_s), (1, 1))(R))
-	R = BatchNorm2d(act=None)(Conv2d(n_f, (f_s, f_s), (1, 1))(R))
+	R = BatchNorm2d(act=lrelu)(Conv2d(n_f, (f_s, f_s), (1, 1), W_init=w_init)(R))
+	R = BatchNorm2d(act=None)(Conv2d(n_f, (f_s, f_s), (1, 1), W_init=w_init)(R))
 	R_tmp = Conv2d(n_f, (1, 1), (1, 1))(R_tmp)
 	return Elementwise(tf.add, act=tf.nn.relu)([R_tmp, R])
 
@@ -19,7 +20,7 @@ def Discriminator(input_shape):
 	I = Input(input_shape)
 	D = Conv2d(
 		64, (4, 4), (2, 2), padding='SAME', act=lrelu, name='D_conv_1')(I)
-	D = InstanceNorm2d(act=lrelu)(Conv2d(
+	D = InstanceNorm2d(actclip_by_norm=lrelu)(Conv2d(
 		128, (4, 4), (2, 2), padding='SAME', name='D_conv_2')(D))
 	D = InstanceNorm2d(act=lrelu)(Conv2d(
 		256, (4, 4), (2, 2), padding='SAME', name='D_conv_3')(D))
@@ -36,39 +37,40 @@ def Discriminator(input_shape):
 
 
 def Generator(input_shape):
+	w_init = tl.initializers.truncated_normal(stddev=0.001)
 	I = Input(input_shape)
 	G = Conv2d(
-		64, (4, 4), (2, 2), padding='SAME', act=lrelu, name='G_conv_1')(I)
+		64, (4, 4), (2, 2), padding='SAME', act=lrelu, W_init=w_init, name='G_conv_1')(I)
 	G = BatchNorm2d(act=lrelu)(Conv2d(
-		128, (4, 4), (2, 2), padding='SAME', name='G_conv_2')(G))
+		128, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_2')(G))
 	G = BatchNorm2d(act=lrelu)(Conv2d(
-		256, (4, 4), (2, 2), padding='SAME', name='G_conv_3')(G))
+		256, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_3')(G))
 	G = BatchNorm2d(act=lrelu)(Conv2d(
-		512, (4, 4), (2, 2), padding='SAME', name='G_conv_4')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_4')(G))
 	G = BatchNorm2d(act=lrelu)(Conv2d(
-		512, (4, 4), (2, 2), padding='SAME', name='G_conv_5')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_5')(G))
 	G = BatchNorm2d(act=lrelu)(Conv2d(
-		512, (4, 4), (2, 2), padding='SAME', name='G_conv_6')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_6')(G))
 	G = BatchNorm2d(act=lrelu)(Conv2d(
-		512, (4, 4), (2, 2), padding='SAME', name='G_conv_7')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_7')(G))
 	G = BatchNorm2d(act=lrelu)(Conv2d(
-		512, (4, 4), (2, 2), padding='SAME', name='G_conv_8')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_8')(G))
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		512, (4, 4), (2, 2), padding='SAME', name='G_deconv_1')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_1')(G))
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		512, (4, 4), (2, 2), padding='SAME', name='G_deconv_2')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_2')(G))
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		512, (4, 4), (2, 2), padding='SAME', name='G_deconv_3')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_3')(G))
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		512, (4, 4), (2, 2), padding='SAME', name='G_deconv_4')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_4')(G))
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		256, (4, 4), (2, 2), padding='SAME', name='G_deconv_5')(G))
+		256, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_5')(G))
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		128, (4, 4), (2, 2), padding='SAME', name='G_deconv_6')(G))
+		128, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_6')(G))
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		64, (4, 4), (2, 2), padding='SAME', name='G_deconv_7')(G))
+		64, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_7')(G))
 	G = BatchNorm2d(act=tf.nn.tanh)(DeConv2d(
-		3, (4, 4), (2, 2), padding='SAME', name='G_deconv_8')(G))
+		3, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_8')(G))
 	G_net = Model(inputs=I, outputs=G, name='Generator')
 	return G_net
 

@@ -29,7 +29,9 @@ z_shape1 = (1, image_size, image_size, 1)
 G = Generator((batch_size, 256, 256, 3 + Z_dim))
 D = Discriminator((batch_size, 256, 256, 3))
 E = Encoder((batch_size, 256, 256, 3), Z_dim)
-opt = tf.optimizers.Adam(lrC, beta1)
+G_optimizer = tf.optimizers.Adam(lrC, beta1)
+D_optimizer = tf.optimizers.Adam(lrC, beta1)
+E_optimizer = tf.optimizers.Adam(lrC, beta1)
 
 G.train()
 D.train()
@@ -84,17 +86,16 @@ def train_one_task(train_data, use_aux_data = False):
 				tot_loss.append([loss_G, loss_D, loss_E])
 
 			grad = tape.gradient(loss_G, G.trainable_weights)
-			opt.apply_gradients(zip(grad, G.trainable_weights))
+			grad, _ = tf.clip_by_global_norm(grad, 5)
+			G_optimizer.apply_gradients(zip(grad, G.trainable_weights))
 			grad = tape.gradient(loss_D, D.trainable_weights)
-			opt.apply_gradients(zip(grad, D.trainable_weights))
+			grad, _ = tf.clip_by_global_norm(grad, 5)
+			D_optimizer.apply_gradients(zip(grad, D.trainable_weights))
 			grad = tape.gradient(loss_E, E.trainable_weights)
-			opt.apply_gradients(zip(grad, E.trainable_weights))
+			grad, _ = tf.clip_by_global_norm(grad, 5)
+			E_optimizer.apply_gradients(zip(grad, E.trainable_weights))
 			del tape
 			processed += batch_size
-			tot_loss = np.mean(tot_loss, 0)
-			print("time_used=%f" % (time.time() - start_time))
-			print("Epoch %d finished! loss_G=%f loss_D=%f loss_E=%f" % (epoch, tot_loss[0], tot_loss[1], tot_loss[2]))
-			tot_loss = []
 			if processed > 100:
 				print("#", end="")
 				processed -= 100
@@ -104,14 +105,12 @@ def train_one_task(train_data, use_aux_data = False):
 			tot_loss = np.mean(tot_loss, 0)
 			print("time_used=%f" % (time.time() - start_time))
 			print("Epoch %d finished! loss_G=%f loss_D=%f loss_E=%f" % (epoch, tot_loss[0], tot_loss[1], tot_loss[2]))
-			'''
 			tl.vis.save_images(desired_gen_img.numpy(), [1, 1],
 							   os.path.join(save_dir,
 											'vae_g_{}.png'.format(epoch)))
 			tl.vis.save_images(LR_desired_img.numpy(), [1, 1],
 							   os.path.join(save_dir,
 											'lr_g_{}.png'.format(epoch)))
-											'''
 
 train_one_task(train_cityscapes, None)
 
