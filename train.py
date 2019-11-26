@@ -1,10 +1,13 @@
-import tensorflow as tf
-import time
-import numpy as np
-import tensorlayer as tl
 import os
-from model import Generator, Encoder, Discriminator
+import time
+
+import numpy as np
+import tensorflow as tf
+import tensorlayer as tl
+from tensorlayer.models import Model
+
 from loader import load_images
+from model import Generator, Encoder, Discriminator
 
 epochs = 20
 batch_size = 1
@@ -12,7 +15,9 @@ image_size = 256
 Z_dim = 8
 dataset_name = 'cityscapes'
 save_dir = 'samples'
+models_dir = 'nets'
 tl.files.exists_or_mkdir(save_dir)
+tl.files.exists_or_mkdir(models_dir)
 #sample_num=64
 #log_dir
 #check_point_dir
@@ -26,12 +31,19 @@ kl_C = 0.0001
 image_dims = [256, 256, 3]
 z_shape0 = (batch_size, 1, 1, Z_dim)
 z_shape1 = (1, image_size, image_size, 1)
-G = Generator((batch_size, 256, 256, 3 + Z_dim))
-D = Discriminator((batch_size, 256, 256, 3))
-E = Encoder((batch_size, 256, 256, 3), Z_dim)
 G_optimizer = tf.optimizers.Adam(lrC, beta1)
 D_optimizer = tf.optimizers.Adam(lrC, beta1)
 E_optimizer = tf.optimizers.Adam(lrC, beta1)
+
+LOAD = False
+if LOAD:
+	G = Model.load(os.path.join(models_dir, "G.h5"))
+	D = Model.load(os.path.join(models_dir, "D.h5"))
+	E = Model.load(os.path.join(models_dir, "E.h5"))
+else:
+	G = Generator((batch_size, 256, 256, 3 + Z_dim))
+	D = Discriminator((batch_size, 256, 256, 3))
+	E = Encoder((batch_size, 256, 256, 3), Z_dim)
 
 G.train()
 D.train()
@@ -50,13 +62,13 @@ def train_one_task(train_data, use_aux_data = False):
 			z = z.astype(np.float32)
 
 			with tf.GradientTape(persistent=True) as tape:
-				encoded_true_img, encoded_mu, encoded_log_sigma = E(image_B)
+				encoded_true_img_z, encoded_mu, encoded_log_sigma = E(image_B)
 
 				z = tf.reshape(z, z_shape0)
 				z = tf.tile(z, z_shape1)
-				encoded_true_img = tf.reshape(encoded_true_img, z_shape0)
-				encoded_true_img = tf.tile(encoded_true_img, z_shape1)
-				encoded_GI = tf.concat([image_A, encoded_true_img], axis=3)
+				encoded_true_img_z = tf.reshape(encoded_true_img_z, z_shape0)
+				encoded_true_img_z = tf.tile(encoded_true_img_z, z_shape1)
+				encoded_GI = tf.concat([image_A, encoded_true_img_z], axis=3)
 				GI = tf.concat([image_A, z], axis=3)
 				desired_gen_img = G(encoded_GI)
 				LR_desired_img = G(GI)
@@ -111,8 +123,13 @@ def train_one_task(train_data, use_aux_data = False):
 			tl.vis.save_images(LR_desired_img.numpy(), [1, 1],
 							   os.path.join(save_dir,
 											'lr_g_{}.png'.format(epoch)))
+			G.save(os.path.join(models_dir, "G.h5"))
+			D.save(os.path.join(models_dir, "D.h5"))
+			E.save(os.path.join(models_dir, 'E.h5'))
 
+print("Training starts.")
 train_one_task(train_cityscapes, None)
+print("Training finishes.")
 
 #G.eval()
 #out=G(valid_...).numpy()

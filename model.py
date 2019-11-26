@@ -1,7 +1,6 @@
 import tensorflow as tf
-import numpy as np
 import tensorlayer as tl
-from tensorlayer.layers import Input, Dense, Dropout, Conv2d, DeConv2d, BatchNorm2d, InstanceNorm2d, Flatten, MeanPool2d, Elementwise, Lambda
+from tensorlayer.layers import Input, Dense, Conv2d, DeConv2d, BatchNorm2d, InstanceNorm2d, Flatten, MeanPool2d, Elementwise, Lambda
 from tensorlayer.models import Model
 
 lrelu = lambda x: tl.act.lrelu(x, 0.2)
@@ -20,7 +19,7 @@ def Discriminator(input_shape):
 	I = Input(input_shape)
 	D = Conv2d(
 		64, (4, 4), (2, 2), padding='SAME', act=lrelu, name='D_conv_1')(I)
-	D = InstanceNorm2d(actclip_by_norm=lrelu)(Conv2d(
+	D = InstanceNorm2d(act=lrelu)(Conv2d(
 		128, (4, 4), (2, 2), padding='SAME', name='D_conv_2')(D))
 	D = InstanceNorm2d(act=lrelu)(Conv2d(
 		256, (4, 4), (2, 2), padding='SAME', name='D_conv_3')(D))
