@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorlayer as tl
-from tensorlayer.layers import Input, Dense, Conv2d, DeConv2d, BatchNorm2d, InstanceNorm2d, Flatten, MeanPool2d, Elementwise, Lambda
+from tensorlayer.layers import Input, Dense, Conv2d, DeConv2d, BatchNorm2d, InstanceNorm2d, Flatten, MeanPool2d, Elementwise, Lambda, Concat
 from tensorlayer.models import Model
 
 lrelu = lambda x: tl.act.lrelu(x, 0.2)
@@ -38,38 +38,54 @@ def Discriminator(input_shape):
 def Generator(input_shape):
 	w_init = tl.initializers.truncated_normal(stddev=0.001)
 	I = Input(input_shape)
+	conv_layers = []
 	G = Conv2d(
 		64, (4, 4), (2, 2), padding='SAME', act=lrelu, W_init=w_init, name='G_conv_1')(I)
+	conv_layers.append(G)
 	G = BatchNorm2d(act=lrelu)(Conv2d(
 		128, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_2')(G))
+	conv_layers.append(G)
 	G = BatchNorm2d(act=lrelu)(Conv2d(
 		256, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_3')(G))
+	conv_layers.append(G)
 	G = BatchNorm2d(act=lrelu)(Conv2d(
 		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_4')(G))
+	conv_layers.append(G)
 	G = BatchNorm2d(act=lrelu)(Conv2d(
 		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_5')(G))
+	conv_layers.append(G)
 	G = BatchNorm2d(act=lrelu)(Conv2d(
 		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_6')(G))
+	conv_layers.append(G)
 	G = BatchNorm2d(act=lrelu)(Conv2d(
 		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_7')(G))
+	conv_layers.append(G)
 	G = BatchNorm2d(act=lrelu)(Conv2d(
 		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_conv_8')(G))
+
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_1')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_8')(G))
+	G = Concat(concat_dim=-1)([G, conv_layers.pop()])
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_2')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_7')(G))
+	G = Concat(concat_dim=-1)([G, conv_layers.pop()])
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_3')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_6')(G))
+	G = Concat(concat_dim=-1)([G, conv_layers.pop()])
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_4')(G))
+		512, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_5')(G))
+	G = Concat(concat_dim=-1)([G, conv_layers.pop()])
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		256, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_5')(G))
+		256, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_4')(G))
+	G = Concat(concat_dim=-1)([G, conv_layers.pop()])
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		128, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_6')(G))
+		128, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_3')(G))
+	G = Concat(concat_dim=-1)([G, conv_layers.pop()])
 	G = BatchNorm2d(act=lrelu)(DeConv2d(
-		64, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_7')(G))
+		64, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_2')(G))
+	G = Concat(concat_dim=-1)([G, conv_layers.pop()])
 	G = BatchNorm2d(act=tf.nn.tanh)(DeConv2d(
-		3, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_8')(G))
+		3, (4, 4), (2, 2), padding='SAME', W_init=w_init, name='G_deconv_1')(G))
 	G_net = Model(inputs=I, outputs=G, name='Generator')
 	return G_net
 
