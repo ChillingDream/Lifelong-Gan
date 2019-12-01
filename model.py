@@ -29,7 +29,7 @@ def Discriminator(input_shape):
 		512, (4, 4), (2, 2), padding='SAME', name='D_conv_5')(D))
 	D = InstanceNorm2d(act=lrelu)(Conv2d(
 		512, (4, 4), (2, 2), padding='SAME', name='D_conv_6')(D))
-	D = Conv2d(1, (4, 4), (2, 2), name='D_conv_7', b_init=0.0)(D)
+	D = Conv2d(1, (4, 4), (2, 2), act=tf.nn.sigmoid, name='D_conv_7', b_init=0.0)(D)
 	D = Lambda(lambda x: tf.reduce_mean(x, axis=[1, 2, 3]))(D)
 	D_net = Model(inputs=I, outputs=D, name='Discriminator')
 	return D_net

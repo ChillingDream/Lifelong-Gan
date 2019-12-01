@@ -1,14 +1,22 @@
 import os
+import sys
 import time
 
 import numpy as np
 import tensorflow as tf
 import tensorlayer as tl
 
-from loader import load_images
+from dataset import DataGenerator
+from loader import anti_std
 from model import Generator, Encoder, Discriminator
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+	for gpu in gpus:
+		tf.config.experimental.set_memory_growth(gpu, True)
+	tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+	logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+	print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
 
 epochs = 20
 batch_size = 1
@@ -17,6 +25,7 @@ Z_dim = 8
 dataset_name = 'cityscapes'
 save_dir = 'samples'
 models_dir = 'nets'
+model_tag = 2
 tl.files.exists_or_mkdir(save_dir)
 tl.files.exists_or_mkdir(models_dir)
 #sample_num=64
@@ -41,25 +50,25 @@ G = Generator((batch_size, 256, 256, 3 + Z_dim))
 D = Discriminator((batch_size, 256, 256, 3))
 E = Encoder((batch_size, 256, 256, 3), Z_dim)
 if LOAD:
-	tl.files.load_and_assign_npz(os.path.join(models_dir, "G_weights.npz"), G)
-	tl.files.load_and_assign_npz(os.path.join(models_dir, "D_weights.npz"), D)
-	tl.files.load_and_assign_npz(os.path.join(models_dir, "E_weights.npz"), E)
+	tl.files.load_and_assign_npz(os.path.join(models_dir, "G_weights_{}.npz".format(model_tag)), G)
+	tl.files.load_and_assign_npz(os.path.join(models_dir, "D_weights_{}.npz".format(model_tag)), D)
+	tl.files.load_and_assign_npz(os.path.join(models_dir, "E_weights_{}.npz".format(model_tag)), E)
 	print("Model weights has been loaded.")
 
 G.train()
 D.train()
 E.train()
 print("Training data loading.")
-train_cityscapes = load_images("cityscapes", "train")
+train_cityscapes = DataGenerator("cityscapes", "train")
 print("Training data has been loaded.")
 
 def train_one_task(train_data, use_aux_data = False):
 	start_time = time.time()
-	for epoch in range(epochs):
+	for epoch in range(1, epochs + 1):
 		tot_loss = []
 		processed = 0
-		for image_A, image_B in tl.iterate.minibatches(train_data[0], train_data[1], batch_size, shuffle=False):
-			z = np.random.normal(size=(batch_size, Z_dim)).astype(np.float32)
+		for image_A, image_B in train_data(batch_size):
+			z = tf.random.normal(shape=(batch_size, Z_dim))
 
 			with tf.GradientTape(persistent=True) as tape:
 				encoded_true_img_z, encoded_mu, encoded_log_sigma = E(image_B)
@@ -111,26 +120,29 @@ def train_one_task(train_data, use_aux_data = False):
 			if processed > 100:
 			#	print("#", end="")
 				print("%f %f %f %f %f" % (loss_vae_G + loss_lr_G, loss_D, loss_vae_L1, loss_latent_GE, loss_kl_E))
+				sys.stdout.flush()
 				processed -= 100
 
 		print("")
 		if epoch % 1 == 0:
-			tl.files.save_npz(G.all_weights, os.path.join(models_dir, "G_weights.npz"))
-			tl.files.save_npz(D.all_weights, os.path.join(models_dir, "D_weights.npz"))
-			tl.files.save_npz(E.all_weights, os.path.join(models_dir, "E_weights.npz"))
+			tl.files.save_npz(G.all_weights, os.path.join(models_dir, "G_weights_{}.npz".format(model_tag)))
+			tl.files.save_npz(D.all_weights, os.path.join(models_dir, "D_weights_{}.npz".format(model_tag)))
+			tl.files.save_npz(E.all_weights, os.path.join(models_dir, "E_weights_{}.npz".format(model_tag)))
 
 			tot_loss = np.mean(tot_loss, 0)
 			print("time_used=%f" % (time.time() - start_time))
 			print("Epoch %d finished! loss_G=%f loss_D=%f loss_E=%f" % (epoch, tot_loss[0], tot_loss[1], tot_loss[2]))
+			sys.stdout.flush()
 
-			tl.vis.save_images(desired_gen_img.numpy(), [1, batch_size],
+			tl.vis.save_images(anti_std(desired_gen_img.numpy()), [1, batch_size],
 							   os.path.join(save_dir,
 											'vae_g_{}.png'.format(epoch)))
-			tl.vis.save_images(LR_desired_img.numpy(), [1, batch_size],
+			tl.vis.save_images(anti_std(LR_desired_img.numpy()), [1, batch_size],
 							   os.path.join(save_dir,
 											'lr_g_{}.png'.format(epoch)))
 
 print("Training starts.")
+sys.stdout.flush()
 train_one_task(train_cityscapes, False)
 print("Training finishes.")
 
