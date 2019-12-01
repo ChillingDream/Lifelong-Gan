@@ -13,4 +13,4 @@
 
 * [1] Lifelong GAN: Continual Learning for Conditional Image Generation. ICCV, 2019
 
-* [2]Toward Multimodal Image-to-Image Translation. NeurIPS, 2017.
+* [2] Toward Multimodal Image-to-Image Translation. NeurIPS, 2017.

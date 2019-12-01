@@ -25,7 +25,7 @@ Z_dim = 8
 dataset_name = 'cityscapes'
 save_dir = 'samples'
 models_dir = 'nets'
-model_tag = 2
+model_tag = 1
 tl.files.exists_or_mkdir(save_dir)
 tl.files.exists_or_mkdir(models_dir)
 #sample_num=64
@@ -45,7 +45,7 @@ G_optimizer = tf.optimizers.Adam(lrC, beta1)
 D_optimizer = tf.optimizers.Adam(lrC, beta1)
 E_optimizer = tf.optimizers.Adam(lrC, beta1)
 
-LOAD = False
+LOAD = True
 G = Generator((batch_size, 256, 256, 3 + Z_dim))
 D = Discriminator((batch_size, 256, 256, 3))
 E = Encoder((batch_size, 256, 256, 3), Z_dim)
@@ -89,11 +89,11 @@ def train_one_task(train_data, use_aux_data = False):
 				P_fake_encoded = D(desired_gen_img)
 
 				loss_vae_D = (tl.cost.mean_squared_error(P_real, 0.9) +
-							  tl.cost.mean_squared_error(P_fake_encoded, 0.9))
+							  tl.cost.mean_squared_error(P_fake_encoded, 0.0))
 				loss_lr_D = (tl.cost.mean_squared_error(P_real, 0.9) +
 							 tl.cost.mean_squared_error(P_fake, 0.0))
 				loss_vae_G = tl.cost.mean_squared_error(P_fake_encoded, 0.9)
-				loss_lr_G = tl.cost.mean_squared_error(P_fake, 0.0)
+				loss_lr_G = tl.cost.mean_squared_error(P_fake, 0.9)
 				loss_vae_L1 = tl.cost.absolute_difference_error(
 					image_B, desired_gen_img, axis=[-1, -2, -3])
 				loss_latent_GE = tl.cost.absolute_difference_error(z, reconst_z)
