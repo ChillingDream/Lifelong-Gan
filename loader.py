@@ -7,15 +7,19 @@ from scipy.misc import imread
 def anti_std (x):
 	return (x + 1) / 2
 
-def load_images(dataset_path, option):
-	all_imgs = glob.glob(os.path.join(dataset_path, option, "*.jpg"))
+def load_images(dataset_path, mode, reverse):
+	all_imgs = glob.glob(os.path.join(dataset_path, mode, "*.jpg"))
 	img_array_A = []
 	img_array_B = []
 
 	for file in all_imgs:
 		full_image = imread(file)
-		img_B = full_image[:, :full_image.shape[1] // 2, :]
-		img_A = full_image[:, full_image.shape[1] // 2:, :]
+		if reverse:
+			img_B = full_image[:, :full_image.shape[1] // 2, :]
+			img_A = full_image[:, full_image.shape[1] // 2:, :]
+		else:
+			img_A = full_image[:, :full_image.shape[1] // 2, :]
+			img_B = full_image[:, full_image.shape[1] // 2:, :]
 		img_array_A.append(img_A)
 		img_array_B.append(img_B)
 

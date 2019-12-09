@@ -7,8 +7,8 @@ from loader import load_images
 dataset_dir = "./data"
 
 class DataGenerator(object):
-	def __init__(self, dataset_name, mode):
-		self.images = load_images(os.path.join(dataset_dir, dataset_name), mode)
+	def __init__(self, dataset_name, mode, reverse):
+		self.images = load_images(os.path.join(dataset_dir, dataset_name), mode, reverse)
 
 	def generator(self):
 		for imgA, imgB in zip(self.images[0], self.images[1]):
