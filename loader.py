@@ -4,9 +4,6 @@ import os
 import numpy as np
 from scipy.misc import imread
 
-def anti_std (x):
-	return (x + 1) / 2
-
 def load_images(dataset_path, mode, reverse):
 	all_imgs = glob.glob(os.path.join(dataset_path, mode, "*.jpg"))
 	img_array_A = []
