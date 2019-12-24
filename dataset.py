@@ -18,10 +18,12 @@ class DataGenerator(object):
 		for imgA, imgB in zip(self.images[0], self.images[1]):
 			yield imgA, imgB
 
-	def __call__(self, batch_size, shuffle = True):
+	def __call__(self, batch_size, shuffle = True, repeat = True):
 		data = tf.data.Dataset.from_generator(self.generator, output_types=(tf.float32, tf.float32))
 		if self.mode == "train":
 			data = data.shuffle(100 * batch_size)
 		data = data.prefetch(10 * batch_size)
 		data = data.batch(batch_size)
+		if repeat:
+			data = data.repeat()
 		return data

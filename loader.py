@@ -3,13 +3,14 @@ import os
 
 import numpy as np
 from scipy.misc import imread
+from tqdm import tqdm
 
 def load_images(dataset_path, mode, reverse):
 	all_imgs = glob.glob(os.path.join(dataset_path, mode, "*.jpg"))
 	img_array_A = []
 	img_array_B = []
 
-	for file in all_imgs:
+	for file in tqdm(all_imgs):
 		full_image = imread(file)
 		if reverse:
 			img_B = full_image[:, :full_image.shape[1] // 2, :]

@@ -3,6 +3,7 @@ import os
 import numpy as np
 import tensorflow as tf
 import tensorlayer as tl
+from tqdm import trange
 
 from dataset import DataGenerator
 from model import Generator
@@ -12,17 +13,16 @@ G = Generator((batch_size, 256, 256, 3), z_dim)
 tl.files.load_and_assign_npz(os.path.join(models_dir, "G_weights_{}.npz".format(model_tag)), G)
 
 def test_one_task(test_data):
-	#G.eval()
 	G.train()
-	for i, (image_A, image_B) in enumerate(test_data(batch_size)):
-		z = tf.random.normal(shape=(batch_size, z_dim))
-		image1 = G([image_A, z])
-		z = tf.random.normal(shape=(batch_size, z_dim))
-		image2 = G([image_A, z])
-		tmp = np.concatenate([image_A, image_B, image1, image2])
-		print(np.max(image1), np.min(image1), np.max(image2), np.min(image2))
-		tl.vis.save_images(np.concatenate([image_A, image_B, image1, image2]), [2, 2], os.path.join(save_dir, "result{}.png".format(i)))
+	num_images = len(test_data)
+	for i, (image_A, image_B) in zip(trange(0, num_images, batch_size), test_data(batch_size)):
+		images = [image_A, image_B]
+		for j in range(8):
+			z = tf.random.normal(shape=(batch_size, z_dim))
+			image = G([image_A, z])
+			images.append(image)
+		tl.vis.save_images(np.concatenate(images), [len(images) // 2, 2], os.path.join(save_dir, "result{}.png".format(i)))
 
-test_data = DataGenerator('facades', 'train', reverse=True)
+test_data = DataGenerator('facades', 'test', reverse=True)
 print("Testing.")
 test_one_task(test_data)
