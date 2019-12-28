@@ -9,7 +9,7 @@ from dataset import DataGenerator
 from model import Generator
 from params import *
 
-G = Generator((batch_size, 256, 256, 3), z_dim)
+G = Generator(input_shape, z_dim)
 tl.files.load_and_assign_npz(os.path.join(models_dir, "G_weights_{}.npz".format(model_tag)), G)
 
 def test_one_task(test_data):
@@ -23,6 +23,6 @@ def test_one_task(test_data):
 			images.append(image)
 		tl.vis.save_images(np.concatenate(images), [len(images) // 2, 2], os.path.join(save_dir, "result{}.png".format(i)))
 
-test_data = DataGenerator('facades', 'test', reverse=True)
+test_data = DataGenerator('cityscapes', 'test', reverse=False)
 print("Testing.")
 test_one_task(test_data)

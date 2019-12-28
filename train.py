@@ -1,5 +1,4 @@
 import os
-import sys
 
 import tensorflow as tf
 import tensorlayer as tl
@@ -13,7 +12,7 @@ gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
 	for gpu in gpus:
 		tf.config.experimental.set_memory_growth(gpu, True)
-	tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+	tf.config.experimental.set_visible_devices(gpus[arg.gpu], 'GPU')
 	logical_gpus = tf.config.experimental.list_logical_devices('GPU')
 	print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
 
@@ -23,7 +22,6 @@ tl.files.exists_or_mkdir(log_dir)
 
 writer = tf.summary.create_file_writer(log_dir)
 
-LOAD = False
 bicycleGAN = BicycleGAN(LOAD)
 preGAN = BicycleGAN(LOAD)
 
@@ -39,7 +37,7 @@ def train_one_task(train_data, use_aux_data = False):
 	num_images = len(train_data)
 	t = trange(0, num_images * epochs, batch_size)
 
-	for step, _ in zip(t, train_data(batch_size, use_aux_data)):
+	for step, _ in zip(t, train_data(batch_size, use_aux=use_aux_data)):
 		if use_aux_data:
 			image_A, image_B, aux_A, aux_B = _
 		else:
@@ -47,6 +45,20 @@ def train_one_task(train_data, use_aux_data = False):
 		z = tf.random.normal(shape=(batch_size, z_dim))
 		with tf.GradientTape(persistent=True) as tape:
 			loss = bicycleGAN.calc_loss(image_A, image_B, z)
+			if use_aux_data:
+				encoded_z = bicycleGAN.E(aux_B)[0]
+				pre_encoded_z = preGAN.E(aux_B)[0]
+				vae_dl = tl.cost.absolute_difference_error(encoded_z, pre_encoded_z, is_mean=True) + \
+					tl.cost.absolute_difference_error(bicycleGAN.G([aux_A, encoded_z]), preGAN.G([aux_A, pre_encoded_z]), is_mean=True)
+
+				aux_z = tf.random.normal(shape=(batch_size, z_dim))
+				lr_img = bicycleGAN.G([aux_A, aux_z])
+				pre_lr_img = preGAN.G([aux_A, aux_z])
+				lr_dl = tl.cost.absolute_difference_error(lr_img, pre_lr_img, is_mean=True) + \
+					tl.cost.absolute_difference_error(bicycleGAN.E(lr_img)[0], preGAN.E(pre_lr_img)[0])
+
+				loss_dl = vae_dl + lr_dl
+				loss += dl_beta * loss_dl
 			nloss = -loss
 		grad = tape.gradient(loss, bicycleGAN.D.trainable_weights)
 		grad, norm_D = tf.clip_by_global_norm(grad, 10)
@@ -65,6 +77,7 @@ def train_one_task(train_data, use_aux_data = False):
 
 		del tape
 		#t.set_description("%f %f %f %f %f" % (loss_G, loss_D, loss_vae_L1, loss_latent_L1, loss_kl_E))
+		tf.summary.scalar("loss/loss", loss, step)
 		tf.summary.scalar("loss/loss_GAN_G", bicycleGAN.loss_G, step)
 		tf.summary.scalar("loss/loss_D", bicycleGAN.loss_D, step)
 		tf.summary.scalar("loss/loss_vae_L1", bicycleGAN.loss_vae_L1, step)
@@ -73,6 +86,8 @@ def train_one_task(train_data, use_aux_data = False):
 		tf.summary.scalar("model/P_real", bicycleGAN.P_real[0][0], step)
 		tf.summary.scalar("model/P_fake", bicycleGAN.P_fake[0][0], step)
 		tf.summary.scalar("model/P_fake_encoded", bicycleGAN.P_fake_encoded[0][0], step)
+		if use_aux_data:
+			tf.summary.scalar("loss/loss_dl", loss_dl, step)
 
 		if step % 400 == 0:
 			tl.vis.save_images(bicycleGAN.vae_img.numpy(), [1, batch_size], os.path.join(save_dir, 'vae_g_{}.png'.format(step//400)))
@@ -83,7 +98,7 @@ def train_one_task(train_data, use_aux_data = False):
 
 			epoch += 1
 			new_G_lr = initial_lr * (lr_decay_G ** epoch)
-			new_D_lr = initial_lr * (lr_decay_D ** epoch)
+			new_D_lr = initial_lr * (lr_decay_D ** epoch) / (1 + epoch)
 			G_lr.assign(new_G_lr)
 			D_lr.assign(new_D_lr)
 			E_lr.assign(new_G_lr)
@@ -92,12 +107,18 @@ def train_one_task(train_data, use_aux_data = False):
 
 		writer.flush()
 
-print("Training data loading.")
-train_facades = DataGenerator("facades", "train", reverse=True)
-print("Training data has been loaded.")
-print("Training starts.")
-sys.stdout.flush()
-with tf.device("/gpu:0"), writer.as_default():
-	train_one_task(train_facades, False)
+if mode == "continual":
+	print("{} tasks in total.".format(len(tasks)))
+	for i, task in enumerate(tasks):
+		print("Task {} ...".format(i + 1))
+		train_data = DataGenerator(task, "train")
+		with tf.device("/gpu:0"), writer.as_default():
+			if i > 0:
+				preGAN.load(model_tag)
+			train_one_task(train_data, i > 0)
+else:
+	print("Joint training ...")
+	with tf.device("/gpu:0"), writer.as_default():
+		train_data = DataGenerator(tasks, "train")
+		train_one_task(train_data, False)
 print("Training finishes.")
-

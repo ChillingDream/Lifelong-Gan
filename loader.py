@@ -6,9 +6,12 @@ from scipy.misc import imread, imresize
 from tqdm import tqdm
 
 from params import image_shape
+from params import max_image_num
 
 def load_images(dataset_path, mode, reverse):
 	all_imgs = glob.glob(os.path.join(dataset_path, mode, "*.jpg"))
+	if len(all_imgs) > max_image_num:
+		all_imgs = all_imgs[:max_image_num]
 	img_array_A = []
 	img_array_B = []
 
