@@ -29,7 +29,7 @@ global_step = 0
 def train_one_task(train_data, task = "", use_aux_data = False):
 	global global_step
 	G_lr = tf.Variable(initial_lr, dtype=tf.float32, name="G_learning_rate")
-	D_lr = tf.Variable(initial_lr / 2, dtype=tf.float32, name="D_learning_rate")
+	D_lr = tf.Variable(initial_lr, dtype=tf.float32, name="D_learning_rate")
 	E_lr = tf.Variable(initial_lr, dtype=tf.float32, name="E_learning_rate")
 	G_optimizer = tf.optimizers.Adam(G_lr, beta1)
 	D_optimizer = tf.optimizers.RMSprop(D_lr, beta1)
@@ -109,15 +109,17 @@ def train_one_task(train_data, task = "", use_aux_data = False):
 
 		writer.flush()
 
-if mode == "continual":
+if mode == "continual" or "incremental":
 	print("{} tasks in total.".format(len(tasks)))
+	use_aux = (mode == "incremental")
 	for i, task in enumerate(tasks):
 		print("Task {} ...".format(i + 1))
 		train_data = DataGenerator(task, "train")
 		with tf.device("/gpu:0"), writer.as_default():
-			if i > 0:
+			if use_aux:
 				preGAN.load(model_tag)
-			train_one_task(train_data, task, i > 0)
+			train_one_task(train_data, task, use_aux)
+			use_aux = True
 		sleep(1)
 else:
 	print("Joint training ...")
