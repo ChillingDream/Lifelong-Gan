@@ -22,8 +22,8 @@ tl.files.exists_or_mkdir(log_dir)
 
 writer = tf.summary.create_file_writer(log_dir)
 
-bicycleGAN = BicycleGAN(LOAD)
-preGAN = BicycleGAN(LOAD)
+bicycleGAN = BicycleGAN(LOAD, load_tag)
+preGAN = BicycleGAN(mode == "incremental", load_tag)
 global_step = 0
 
 def train_one_task(train_data, task = "", use_aux_data = False):
@@ -66,20 +66,20 @@ def train_one_task(train_data, task = "", use_aux_data = False):
 		grad = tape.gradient(loss, bicycleGAN.D.trainable_weights)
 		#grad, norm_D = tf.clip_by_global_norm(grad, 10)
 		#tf.summary.scalar("gradients_norm/norm_D", norm_D, step)
-		D_optimizer.apply_gradients(zip(grad, bicycleGAN.D.trainable_weights))
+		#D_optimizer.apply_gradients(zip(grad, bicycleGAN.D.trainable_weights))
 
 		grad = tape.gradient(nloss, bicycleGAN.G.trainable_weights)
 		#grad, norm_G = tf.clip_by_global_norm(grad, 10)
 		#tf.summary.scalar("gradients_norm/norm_G", norm_G, step)
-		G_optimizer.apply_gradients(zip(grad, bicycleGAN.G.trainable_weights))
+		#G_optimizer.apply_gradients(zip(grad, bicycleGAN.G.trainable_weights))
 
 		grad = tape.gradient(nloss, bicycleGAN.E.trainable_weights)
 		#grad, norm_E = tf.clip_by_global_norm(grad, 10)
 		#tf.summary.scalar("gradients_norm/norm_E", norm_E, step)
-		E_optimizer.apply_gradients(zip(grad, bicycleGAN.E.trainable_weights))
+		#E_optimizer.apply_gradients(zip(grad, bicycleGAN.E.trainable_weights))
 
 		del tape
-		#t.set_description("%f %f %f %f %f" % (loss_G, loss_D, loss_vae_L1, loss_latent_L1, loss_kl_E))
+		t.set_description("%f" % (bicycleGAN.loss_vae_L1))
 		tf.summary.scalar("loss/loss", loss, global_step)
 		tf.summary.scalar("loss/loss_GAN_G", bicycleGAN.loss_G, global_step)
 		tf.summary.scalar("loss/loss_D", bicycleGAN.loss_D, global_step)
@@ -111,15 +111,13 @@ def train_one_task(train_data, task = "", use_aux_data = False):
 
 if mode == "continual" or "incremental":
 	print("{} tasks in total.".format(len(tasks)))
-	use_aux = (mode == "incremental")
 	for i, task in enumerate(tasks):
 		print("Task {} ...".format(i + 1))
 		train_data = DataGenerator(task, "train")
 		with tf.device("/gpu:0"), writer.as_default():
-			if use_aux:
+			if i > 0:
 				preGAN.load(model_tag)
-			train_one_task(train_data, task, use_aux)
-			use_aux = True
+			train_one_task(train_data, task, i > 0 or mode == "incremental")
 		sleep(1)
 else:
 	print("Joint training ...")
