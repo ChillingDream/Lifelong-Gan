@@ -22,14 +22,14 @@ tl.files.exists_or_mkdir(log_dir)
 
 writer = tf.summary.create_file_writer(log_dir)
 
-bicycleGAN = BicycleGAN(LOAD)
-preGAN = BicycleGAN(LOAD)
+bicycleGAN = BicycleGAN(LOAD, load_tag)
+preGAN = BicycleGAN(mode == "incremental", load_tag)
 global_step = 0
 
 def train_one_task(train_data, task = "", use_aux_data = False):
 	global global_step
 	G_lr = tf.Variable(initial_lr, dtype=tf.float32, name="G_learning_rate")
-	D_lr = tf.Variable(initial_lr / 2, dtype=tf.float32, name="D_learning_rate")
+	D_lr = tf.Variable(initial_lr, dtype=tf.float32, name="D_learning_rate")
 	E_lr = tf.Variable(initial_lr, dtype=tf.float32, name="E_learning_rate")
 	G_optimizer = tf.optimizers.Adam(G_lr, beta1)
 	D_optimizer = tf.optimizers.RMSprop(D_lr, beta1)
@@ -79,7 +79,7 @@ def train_one_task(train_data, task = "", use_aux_data = False):
 		E_optimizer.apply_gradients(zip(grad, bicycleGAN.E.trainable_weights))
 
 		del tape
-		#t.set_description("%f %f %f %f %f" % (loss_G, loss_D, loss_vae_L1, loss_latent_L1, loss_kl_E))
+		#t.set_description("%f" % (bicycleGAN.loss_vae_L1))
 		tf.summary.scalar("loss/loss", loss, global_step)
 		tf.summary.scalar("loss/loss_GAN_G", bicycleGAN.loss_G, global_step)
 		tf.summary.scalar("loss/loss_D", bicycleGAN.loss_D, global_step)
@@ -99,17 +99,18 @@ def train_one_task(train_data, task = "", use_aux_data = False):
 		if step % num_images == num_images - 1:
 			bicycleGAN.save(model_tag)
 			epoch += 1
-			#new_G_lr = initial_lr * (lr_decay_G ** epoch)
-			#new_D_lr = initial_lr * (lr_decay_D ** epoch) / (1 + epoch)
-			#G_lr.assign(new_G_lr)
-			#D_lr.assign(new_D_lr)
-			#E_lr.assign(new_G_lr)
+			if epochs - epoch < decay_epochs:
+				new_G_lr = initial_lr * (epochs - epoch) / decay_epochs
+				new_D_lr = initial_lr * (epochs - epoch) / decay_epochs
+				G_lr.assign(new_G_lr)
+				D_lr.assign(new_D_lr)
+				E_lr.assign(new_G_lr)
 			tf.summary.scalar("learing_rate/lr_G", G_lr, global_step)
 			tf.summary.scalar("learing_rate/lr_D", D_lr, global_step)
 
 		writer.flush()
 
-if mode == "continual":
+if mode == "continual" or "incremental":
 	print("{} tasks in total.".format(len(tasks)))
 	for i, task in enumerate(tasks):
 		print("Task {} ...".format(i + 1))
@@ -117,7 +118,7 @@ if mode == "continual":
 		with tf.device("/gpu:0"), writer.as_default():
 			if i > 0:
 				preGAN.load(model_tag)
-			train_one_task(train_data, task, i > 0)
+			train_one_task(train_data, task, i > 0 or mode == "incremental")
 		sleep(1)
 else:
 	print("Joint training ...")

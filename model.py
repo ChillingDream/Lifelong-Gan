@@ -1,5 +1,3 @@
-import os
-
 import tensorflow as tf
 import tensorlayer as tl
 from tensorlayer.layers import *
@@ -90,13 +88,13 @@ def Encoder(input_shape, z_dim, prefix=""):
 class BicycleGAN(object):
 	count = 0
 
-	def __init__(self, LOAD = False):
+	def __init__(self, LOAD = False, load_tag = model_tag):
 		BicycleGAN.count += 1
 		self.G = Generator(input_shape, z_dim, "model_{}/".format(self.count))
 		self.D = Discriminator(input_shape, "model_{}/".format(self.count))
 		self.E = Encoder(input_shape, z_dim, "model_{}/".format(self.count))
 		if LOAD:
-			self.load(model_tag)
+			self.load(load_tag)
 		self.G.train()
 		self.D.train()
 		self.E.train()
