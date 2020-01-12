@@ -1,20 +1,11 @@
 from time import sleep
 
-import tensorflow as tf
 import tensorlayer as tl
 from tqdm import trange
 
 from dataset import DataGenerator
 from model import BicycleGAN
 from params import *
-
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-	for gpu in gpus:
-		tf.config.experimental.set_memory_growth(gpu, True)
-	tf.config.experimental.set_visible_devices(gpus[arg.gpu], 'GPU')
-	logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-	print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
 
 tl.files.exists_or_mkdir(sample_dir)
 tl.files.exists_or_mkdir(models_dir)

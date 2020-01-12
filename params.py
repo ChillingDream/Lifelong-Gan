@@ -1,6 +1,8 @@
 import argparse
 import os
 
+import tensorflow as tf
+
 parser = argparse.ArgumentParser(description="Run commands")
 parser.add_argument("--mode", default="continual", type=str, help="continual, incremental or joint")
 parser.add_argument("--batch_size", default=1, type=int)
@@ -49,3 +51,12 @@ else:
 	load_tag = model_tag
 log_step = arg.log_step
 patch_size = arg.patch_size
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+	for gpu in gpus:
+		tf.config.experimental.set_memory_growth(gpu, True)
+	tf.config.experimental.set_visible_devices(gpus[arg.gpu], 'GPU')
+	logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+	print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+
