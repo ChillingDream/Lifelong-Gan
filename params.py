@@ -14,10 +14,10 @@ parser.add_argument("--log_dir", default="logs/", type=str)
 parser.add_argument("--model_dir", default="nets/", type=str)
 parser.add_argument("--sample_dir", default="samples/", type=str)
 parser.add_argument("--gpu", default=0, type=int)
-parser.add_argument("--max_image_num", default=5000, type=int)
+parser.add_argument("--max_image_num", default=1200, type=int)
 parser.add_argument("--tasks", default="facades", type=str)
 parser.add_argument("--log_step", default=400, type=int)
-parser.add_argument("--patch_size", default=64, type=int)
+parser.add_argument("--patch_size", default=8, type=int)
 
 arg = parser.parse_args()
 
@@ -34,7 +34,7 @@ initial_lr = 0.0002
 lr_decay_G = 0.9
 lr_decay_D = 0.85
 beta1 = 0.5
-dl_beta = 5.
+dl_beta = 0.5
 reconst_C = 10
 latent_C = 0.5
 kl_C = 0.05
