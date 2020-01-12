@@ -18,14 +18,16 @@
 * Training
 
   ``` bash
-  python train.py
+  python train.py --tasks edges2shoes+facades
   ```
+  Tasks edges2shoes and facades will be trained in turn. You can replace them with your datasets and concatenate the task names with "+". More training settings can be found in `params.py`.
 
 * Evaluation
 
   ```bash
-  python evaluate.py
+  python evaluate.py --tasks edges2shoes+facades
   ```
+  The evaluation results can be found in subdirectory `samples`.
 
   
 
