@@ -8,6 +8,10 @@
 * Numpy
 * Tqdm
 
+### Model
+
+<div align="center"><img src="img/model.png"></div>
+
 ### Prepare data
 
 * Create a folder `data` in the project directory.
